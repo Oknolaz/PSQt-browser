@@ -1,14 +1,17 @@
 import sys
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtWebEngineWidgets import * 
 import design
 
 class MainWindow(design.Ui_MainWindow, QtWidgets.QMainWindow, QtCore.QUrl):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        pageUrl = str(self.webView.url())
-        pageUrl = pageUrl.replace('PyQt5.QtCore.QUrl', '').replace('(', '').replace("'", '').replace(")", '')
-        self.webView.setFocus()
+        self.tabWidget.removeTab(1)
+        self.tabWidget.setDocumentMode(True)
+        self.tabWidget.currentChanged.connect(self.setLineURL)
+        self.tabWidget.tabCloseRequested.connect(self.closeTab)
+        pageUrl = "https://searx.xyz/"
         self.progressBar.hide()
         self.webUrl.setText(pageUrl)
         self.l.clicked.connect(self.backBrowse)
@@ -16,122 +19,63 @@ class MainWindow(design.Ui_MainWindow, QtWidgets.QMainWindow, QtCore.QUrl):
         self.reload.clicked.connect(self.reloadPage)
         self.home.clicked.connect(self.goHome)
         self.webUrl.editingFinished.connect(self.changeUrl)
-        self.webView.urlChanged.connect(self.setLineURL)
-        self.webView.loadStarted.connect(self.loadProgress)
-        self.newWindow.clicked.connect(self.openNewWindow)
-        self.webView.settings().PluginsEnabled = True
-        self.webView.settings().FullScreenSupportEnabled = True
-        self.nw1 = NewWindow()
-        self.nw2 = NewWindow()
-        self.nw3 = NewWindow()
-        self.nw4 = NewWindow()
-        self.nw5 = NewWindow()
-        self.nw6 = NewWindow()
+        self.newWindow.clicked.connect(self.addNewTab)
+        self.addNewTab()
+        self.show()
         
-
     def backBrowse(self):
-        self.webView.back()
+        self.tabWidget.currentWidget().back()
     
     def nextBrowse(self):
-        self.webView.forward()
+        self.tabWidget.currentWidget().forward()
     
     def reloadPage(self):
-        self.webView.reload()
+        self.tabWidget.currentWidget().reload()
     
     def goHome(self):
-        self.webView.setUrl(QtCore.QUrl("https://searx.xyz"))
+        self.tabWidget.currentWidget().setUrl(QtCore.QUrl("https://searx.xyz"))
     
     def changeUrl(self):
         searchLine = self.webUrl.text()
+        
         if searchLine == '' or searchLine == ' ':
-            self.webView.setUrl(QtCore.QUrl("https://searx.xyz"))
+            self.tabWidget.currentWidget().setUrl(QtCore.QUrl("https://searx.xyz"))
+            
         elif " " in searchLine or "." not in searchLine:
-            self.webView.setUrl(QtCore.QUrl(f"https://searx.xyz/search?q={searchLine}&categories=general&language=en"))
+            self.tabWidget.currentWidget().setUrl(QtCore.QUrl(f"https://searx.xyz/search?q={searchLine}&categories=general&language=en"))
+        
         else:
             if "https://" not in searchLine and "http://" not in searchLine:
-                self.webView.setUrl(QtCore.QUrl(f"https://{searchLine}"))
+                self.tabWidget.currentWidget().setUrl(QtCore.QUrl(f"https://{searchLine}"))
             else:
-                self.webView.setUrl(QtCore.QUrl(searchLine))
+                self.tabWidget.currentWidget().setUrl(QtCore.QUrl(searchLine))
     
     def setLineURL(self):
-        pageUrl = str(self.webView.url())
+        pageUrl = str(self.tabWidget.currentWidget().url())
         pageUrl = pageUrl.replace('PyQt5.QtCore.QUrl', '').replace('(', '').replace("'", '').replace(")", '')
         self.webUrl.setText(pageUrl)
         
     def loadProgress(self):
         self.progressBar.show()
-        self.webView.loadProgress.connect(self.progressBar.setValue)
-        self.webView.loadFinished.connect(self.progressBar.hide)
+        self.tabWidget.currentWidget().loadProgress.connect(self.progressBar.setValue)
+        self.tabWidget.currentWidget().loadFinished.connect(self.progressBar.hide)
         
-    def openNewWindow(self):
-        if self.nw1.isVisible():
-            self.nw2.show()
-        elif self.nw2.isVisible():
-            self.nw3.show()
-        elif self.nw3.isVisible():
-            self.nw4.show()
-        elif self.nw4.isVisible():
-            self.nw5.show()
-        elif self.nw5.isVisible():
-            self.nw6.show()
+    def addNewTab(self):
+        browser = QWebEngineView()
+        browser.setUrl(QtCore.QUrl("https://searx.xyz/"))
+        title = browser.title()
+        
+        index = self.tabWidget.addTab(browser, title)
+        self.tabWidget.setCurrentIndex(index)
+        
+        browser.urlChanged.connect(self.setLineURL)
+        browser.loadStarted.connect(self.loadProgress)
+        
+    def closeTab(self, index):
+        if self.tabWidget.count() == 1:
+            exit()
         else:
-            self.nw1.show()
-
-        
-class NewWindow(design.Ui_MainWindow, QtWidgets.QMainWindow, QtCore.QUrl):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-        pageUrl = str(self.webView.url())
-        pageUrl = pageUrl.replace('PyQt5.QtCore.QUrl', '').replace('(', '').replace("'", '').replace(")", '')
-        self.webView.setFocus()
-        self.progressBar.hide()
-        self.webUrl.setText(pageUrl)
-        self.l.clicked.connect(self.backBrowse)
-        self.right.clicked.connect(self.nextBrowse)
-        self.reload.clicked.connect(self.reloadPage)
-        self.home.clicked.connect(self.goHome)
-        self.webUrl.editingFinished.connect(self.changeUrl)
-        self.webView.urlChanged.connect(self.setLineURL)
-        self.webView.loadStarted.connect(self.loadProgress)
-        self.newWindow.hide()
-        self.webView.settings().PluginsEnabled = True
-        self.webView.settings().FullScreenSupportEnabled = True
-        
-
-    def backBrowse(self):
-        self.webView.back()
-    
-    def nextBrowse(self):
-        self.webView.forward()
-    
-    def reloadPage(self):
-        self.webView.reload()
-    
-    def goHome(self):
-        self.webView.setUrl(QtCore.QUrl("https://searx.xyz"))
-    
-    def changeUrl(self):
-        searchLine = self.webUrl.text()
-        if searchLine == '' or searchLine == ' ':
-            self.webView.setUrl(QtCore.QUrl("https://searx.xyz"))
-        elif " " in searchLine or "." not in searchLine:
-            self.webView.setUrl(QtCore.QUrl(f"https://searx.xyz/search?q={searchLine}&categories=general&language=en"))
-        else:
-            if "https://" not in searchLine and "http://" not in searchLine:
-                self.webView.setUrl(QtCore.QUrl(f"https://{searchLine}"))
-            else:
-                self.webView.setUrl(QtCore.QUrl(searchLine))
-    
-    def setLineURL(self):
-        pageUrl = str(self.webView.url())
-        pageUrl = pageUrl.replace('PyQt5.QtCore.QUrl', '').replace('(', '').replace("'", '').replace(")", '')
-        self.webUrl.setText(pageUrl)
-        
-    def loadProgress(self):
-        self.progressBar.show()
-        self.webView.loadProgress.connect(self.progressBar.setValue)
-        self.webView.loadFinished.connect(self.progressBar.hide)
+            self.tabWidget.removeTab(index)
         
 
 app = QtWidgets.QApplication(sys.argv)
